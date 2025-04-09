@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import { InputText } from "primereact/inputtext";
 import { Dropdown } from "primereact/dropdown";
 import { Button } from "primereact/button";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import generateLesson from "../functions/generateLesson";
+import { Pencil } from "lucide-react";
+import MarkDown_Preview from "./MarkDown_Preview";
+import MDEditor from "@uiw/react-md-editor";
 
 export default function CourseForm() {
   const [LessonDetails, setLessonDetails] = useState({
@@ -14,8 +15,9 @@ export default function CourseForm() {
     duration: "",
   });
 
-  const [Response, setResponse] = useState("");
-  const [loading, setLoading] = useState(false); // Loader state
+  const [editorVisible, setEditorVisible] = useState(false);
+  const [editorContent, setEditorContent] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const difficultyLevels = [
     { label: "Beginner", value: "Beginner" },
@@ -31,41 +33,31 @@ export default function CourseForm() {
   };
 
   const handleSubmit = async () => {
-    console.log("Submitted Course Details:", LessonDetails);
     setLoading(true);
-    setResponse("");
     try {
       const text = await generateLesson(LessonDetails);
-      setResponse(text);
+      setEditorContent(text);
+      localStorage.setItem("lessonModules", JSON.stringify([text]));
+      setEditorVisible(false);
     } catch (error) {
       console.error("Error generating lesson:", error);
-      setResponse("Error generating lesson.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSave = () => {
+    const storedModules =
+      JSON.parse(localStorage.getItem("lessonModules")) || [];
+    storedModules.push(editorContent);
+    localStorage.setItem("lessonModules", JSON.stringify(storedModules));
+    setEditorVisible(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <style>
-        {`
-        .loader {
-          border: 4px solid #e5e7eb;
-          border-top: 4px solid #10b981;
-          border-radius: 50%;
-          width: 2.5rem;
-          height: 2.5rem;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        `}
-      </style>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-7xl mx-auto">
-        {/* Form Section */}
+        {/* LEFT SIDE: FORM */}
         <div className="bg-white p-6 rounded-2xl shadow-xl">
           <h2 className="text-2xl font-bold mb-6 text-blue-600">
             Course Lesson Planner
@@ -76,7 +68,6 @@ export default function CourseForm() {
               Topic
             </label>
             <InputText
-              id="topic"
               value={LessonDetails.topic}
               onChange={(e) => handleChange("topic", e.target.value)}
               className="w-full"
@@ -89,7 +80,6 @@ export default function CourseForm() {
               Target Audience
             </label>
             <InputText
-              id="audience"
               value={LessonDetails.target_audience}
               onChange={(e) => handleChange("target_audience", e.target.value)}
               className="w-full"
@@ -102,7 +92,6 @@ export default function CourseForm() {
               Difficulty
             </label>
             <Dropdown
-              id="difficulty"
               value={LessonDetails.difficulty}
               options={difficultyLevels}
               onChange={(e) => handleChange("difficulty", e.value)}
@@ -116,7 +105,6 @@ export default function CourseForm() {
               Duration
             </label>
             <InputText
-              id="duration"
               value={LessonDetails.duration}
               onChange={(e) => handleChange("duration", e.target.value)}
               className="w-full"
@@ -127,97 +115,44 @@ export default function CourseForm() {
           <Button
             label="Generate Lesson"
             onClick={handleSubmit}
-            className="w-full p-button-lg"
+            className="w-full"
+            loading={loading}
           />
         </div>
 
-        {/* Markdown Preview Section */}
+        {/* RIGHT SIDE: OUTPUT */}
         <div className="bg-white p-6 rounded-2xl shadow-xl overflow-auto max-h-[90vh]">
-          <h2 className="text-2xl font-bold mb-4 text-green-600">
-            Lesson Output
-          </h2>
-
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500">
-              <span className="loader mb-4"></span>
-              Generating lesson, please wait...
-            </div>
-          ) : Response ? (
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                h1: ({ node, ...props }) => (
-                  <h1
-                    className="text-3xl font-bold mt-4 mb-2 text-gray-800"
-                    {...props}
-                  />
-                ),
-                h2: ({ node, ...props }) => (
-                  <h2
-                    className="text-2xl font-semibold mt-4 mb-2 text-gray-700"
-                    {...props}
-                  />
-                ),
-                p: ({ node, ...props }) => (
-                  <p
-                    className="mb-3 text-gray-800 leading-relaxed"
-                    {...props}
-                  />
-                ),
-                ul: ({ node, ...props }) => (
-                  <ul
-                    className="list-disc list-inside ml-5 mb-3 text-gray-700"
-                    {...props}
-                  />
-                ),
-                ol: ({ node, ...props }) => (
-                  <ol
-                    className="list-decimal list-inside ml-5 mb-3 text-gray-700"
-                    {...props}
-                  />
-                ),
-                li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-                img: ({ node, ...props }) => (
-                  <img
-                    className="my-4 rounded shadow-md max-w-full"
-                    {...props}
-                  />
-                ),
-                table: ({ node, ...props }) => (
-                  <table
-                    className="table-auto border-collapse border border-gray-300 w-full my-4"
-                    {...props}
-                  />
-                ),
-                thead: ({ node, ...props }) => (
-                  <thead className="bg-gray-100" {...props} />
-                ),
-                th: ({ node, ...props }) => (
-                  <th
-                    className="border border-gray-300 px-4 py-2 text-left"
-                    {...props}
-                  />
-                ),
-                td: ({ node, ...props }) => (
-                  <td className="border border-gray-300 px-4 py-2" {...props} />
-                ),
-                code: ({ node, inline, className, children, ...props }) =>
-                  inline ? (
-                    <code
-                      className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono"
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  ) : (
-                    <pre className="bg-gray-900 text-white p-3 rounded overflow-auto my-4">
-                      <code {...props}>{children}</code>
-                    </pre>
-                  ),
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold mb-4 text-green-600">
+              Lesson Output
+            </h2>
+            <Pencil
+              className={`cursor-pointer ${
+                !editorContent ? "opacity-30 cursor-not-allowed" : ""
+              }`}
+              onClick={() => {
+                if (editorContent) setEditorVisible(true);
               }}
-            >
-              {Response}
-            </ReactMarkdown>
+            />
+          </div>
+
+          {editorVisible ? (
+            <>
+              <div data-color-mode="light" className="mb-4">
+                <MDEditor
+                  value={editorContent}
+                  onChange={setEditorContent}
+                  height={300}
+                />
+              </div>
+              <Button
+                label="Save Lesson"
+                onClick={handleSave}
+                className="w-full"
+              />
+            </>
+          ) : editorContent ? (
+            <MarkDown_Preview markdown={editorContent} />
           ) : (
             <p className="text-gray-500">
               Your generated lesson will appear here...
