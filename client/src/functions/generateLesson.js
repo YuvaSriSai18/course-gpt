@@ -2,14 +2,14 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Replace with your Gemini API Key
-const API_KEY = "AIzaSyBuBc6Kxh4YrQlWan3RQlUrTMZ8YYziNbI";
+const API_KEY = import.meta.env.VITE_API_KEY;
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 // Async function to generate lesson
 async function generateLesson(LessonDetails) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
   // User inputs (replace with form data if using in frontend/backend)
   const course_topic = LessonDetails.topic;
